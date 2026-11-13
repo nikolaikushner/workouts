@@ -7,6 +7,7 @@ A personal gym tracker for a 4-day split. One HTML file, no backend, no build st
 ## Features
 
 - **4-day split** — upper push, lower body, upper pull, legs + conditioning. Each exercise shows the working weight and the sets × reps scheme.
+- **Warm-up run** — every day starts with a 1 km run on the treadmill. It has its own check box above the exercise list.
 - **Set checklist** — tap a set number to mark it done. An exercise turns green when all its sets are done.
 - **Progress calendar** — the Stats tab shows a month calendar. A day turns green when at least one set is checked, with a D1–D4 label for the workout. Also shows workouts this week, this month and all time, plus a list of recent sessions.
 - **English and Russian** — EN/RU switch in the header. English is the default.
