@@ -100,6 +100,10 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppe
 .cell small{font-size:10px;opacity:.9;font-weight:600}
 .legend{font-size:12px;color:var(--muted);margin:10px 0 0}
 .history{display:flex;flex-direction:column}
+.sect{font-family:var(--display);font-size:20px;text-transform:uppercase;margin:6px 0 0}
+.stat b.good{color:var(--done)}
+.goalbar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.goalbar div{height:100%;background:var(--done);border-radius:4px}
 .hrow{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;border-top:1px solid var(--line);font-size:14px;font-variant-numeric:tabular-nums}
 .hrow:first-child{border-top:0}
 .hrow span{color:var(--muted)}
@@ -134,7 +138,7 @@ const T={
   months:["January","February","March","April","May","June","July","August","September","October","November","December"],
   wd:["Mo","Tu","We","Th","Fr","Sa","Su"],dShort:"D",
   legend:"A day turns green when you check at least one set. D1–D4 shows which workout.",
-  history:"Recent workouts",none:"No workouts yet. Check a set on any day and it shows up here.",
+  history:"Recent workouts",bw:"Body weight",bwStart:"start",bwNow:"now",bwChange:"change",bwGoal:n=>`${n} kg to the goal of 72 kg`,bwGoalDone:"Goal range reached",bwLog:"Weigh-ins",bmi:"BMI",none:"No workouts yet. Check a set on any day and it shows up here.",
   setsN:n=>`${n} ${n===1?"set":"sets"}`,locale:"en-GB",set:"set",kg:"kg",was:"kg",rules:"Rules",docTitle:"Nik's Workouts",
   notes:[["Progression","Each week add 1–2 reps or 2.5 kg. When you reach the top of the range in all sets, add weight and start again from the bottom."],
    ["Time","45–60 minutes. No need for more — keep it dense."],
@@ -147,7 +151,7 @@ const T={
   months:["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"],
   wd:["Пн","Вт","Ср","Чт","Пт","Сб","Вс"],dShort:"Д",
   legend:"День становится зелёным, когда ты отметил хотя бы один подход. Д1–Д4 — какая тренировка.",
-  history:"Последние тренировки",none:"Пока нет тренировок. Отметь подход в любом дне — он появится здесь.",
+  history:"Последние тренировки",bw:"Вес тела",bwStart:"старт",bwNow:"сейчас",bwChange:"изменение",bwGoal:n=>`до цели 72 кг осталось ${n} кг`,bwGoalDone:"Цель достигнута",bwLog:"Взвешивания",bmi:"ИМТ",none:"Пока нет тренировок. Отметь подход в любом дне — он появится здесь.",
   setsN:n=>`${n} подх.`,locale:"ru-RU",set:"подход",kg:"кг",rules:"Правила",docTitle:"Тренировки Ника",
   notes:[["Прогрессия","Каждую неделю +1–2 повтора или +2,5 кг. Дошёл до верха диапазона во всех подходах — поднимай вес и начинай с нижней границы."],
    ["Время","45–60 минут. Больше не нужно, лучше плотнее."],
@@ -158,13 +162,18 @@ const T={
 // Warm-up shown at the top of every day, before the exercise list
 const WARMUP={name:["Run","Бег"],dist:1,alt:["treadmill, easy pace","беговая дорожка, лёгкий темп"]};
 // [en, ru] pairs
+// Body weight log (week of the reading, kg). Add new rows at the end.
+const BODY={height:166,goal:[68,72],log:[
+ ["2026-05-11",81.1],
+ ["2026-11-09",74.2]
+]};
 const DAYS=[
  {id:"day1",short:["Push","Жим"],title:["Upper body — push","Верх тела — жим"],rest:["Rest 90 s, up to 2 min on bench press.","Отдых 90 сек, на жиме лёжа до 2 мин."],ex:[
   [["Barbell bench press","Жим штанги лёжа"],50,["4×8–10"],4,["total with 20 kg bar: 2×15 kg plates","всего с грифом 20 кг: 2 блина по 15 кг"]],
   [["Lat pulldown to chest","Тяга верхнего блока к груди"],45,["4×10"],4],
   [["Shoulder press machine","Жим на плечи в тренажёре"],20,["3×10–12"],3,["Technogym, weight on the stack","Technogym, вес на стеке"]],
   [["Seated cable row","Тяга нижнего блока (гребля)"],45,["3×12"],3],
-  [["Dumbbell lateral raises","Махи гантелями в стороны"],7,["3×12–15"],3,["7 kg dumbbells","гантели по 7 кг"]],
+  [["Dumbbell lateral raises","Махи гантелями в стороны"],6,["3×12–15"],3,["6 kg dumbbells","гантели по 6 кг"]],
   [["Cable triceps pushdown","Трицепс на блоке"],68,["3×12"],3],
   [["Cable biceps curl","Бицепс на блоке"],50,["3×12"],3]]},
  {id:"day2",short:["Legs","Ноги"],title:["Lower body","Низ тела"],rest:["Rest 90 s, up to 2 min on squats.","Отдых 90 сек, на приседе до 2 мин."],ex:[
@@ -285,8 +294,24 @@ function renderProgress(){
   const hist=dates.slice(-8).reverse().map(k=>{const e=log[k];
     const what=Object.entries(e).map(([id,n])=>{const d=DAYS.find(x=>x.id===id);return `${t.day} ${DAYS.indexOf(d)+1} · ${pick(d.short)} · ${t.setsN(n)}`}).join("; ");
     return `<div class="hrow"><b>${fmtDate(k)}</b><span>${what}</span></div>`}).join("");
+  const L0=BODY.log[0],LN=BODY.log[BODY.log.length-1],chg=Math.round((LN[1]-L0[1])*10)/10;
+  const bmi=Math.round(LN[1]/((BODY.height/100)**2)*10)/10;
+  const left=Math.round((LN[1]-BODY.goal[1])*10)/10;
+  const span=L0[1]-BODY.goal[1],pct=Math.max(0,Math.min(100,(L0[1]-LN[1])/span*100));
+  const mDate=k=>{const [yy,mm,dd]=k.split("-").map(Number);return new Date(yy,mm-1,dd).toLocaleDateString(t.locale,{day:"numeric",month:"short",year:"numeric"})};
+  const wrows=BODY.log.slice().reverse().map(([k,v])=>`<div class="hrow"><b>${mDate(k)}</b><span>${fmt(v)} ${t.kg}</span></div>`).join("");
   document.getElementById("day").innerHTML=`<div class="day">
     <div class="dayhead"><h2>${t.progTitle}</h2></div>
+    <h3 class="sect">${t.bw}</h3>
+    <div class="stats">
+      <div class="stat"><b>${fmt(L0[1])}</b><span>${t.bwStart} · ${mDate(L0[0])}</span></div>
+      <div class="stat"><b>${fmt(LN[1])}</b><span>${t.bwNow} · ${t.bmi} ${fmt(bmi)}</span></div>
+      <div class="stat"><b class="good">${chg>0?"+":"−"}${fmt(Math.abs(chg))}</b><span>${t.bwChange}, ${t.kg}</span></div>
+    </div>
+    <div class="goalbar" role="img" aria-label="${left>0?t.bwGoal(fmt(left)):t.bwGoalDone}"><div style="width:${pct}%"></div></div>
+    <p class="legend" style="margin:0">${left>0?t.bwGoal(fmt(left)):t.bwGoalDone}</p>
+    <div class="list history">${wrows}</div>
+    <h3 class="sect">${t.progTab==="Stats"?"Workouts":"Тренировки"}</h3>
     <div class="stats">
       <div class="stat"><b>${week}</b><span>${t.thisWeek}</span></div>
       <div class="stat"><b>${month}</b><span>${t.thisMonth}</span></div>

@@ -41,6 +41,19 @@ Use `null` for the weight when an exercise has no load (plank, cardio). The note
 
 UI text is in the `T` object, one block per language.
 
+## Body weight
+
+The Stats tab also shows body weight: start, current, change, BMI and progress to the 72 kg goal. The weigh-ins are in the `BODY` object in `index.html`:
+
+```js
+const BODY={height:166,goal:[68,72],log:[
+ ["2026-05-11",81.1],
+ ["2026-11-09",74.2]
+]};
+```
+
+Add a new row at the end of `log` for each new weigh-in.
+
 ## Progression rules
 
 - Each week add 1–2 reps or 2.5 kg.
